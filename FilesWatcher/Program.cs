@@ -1,15 +1,23 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.IO;
+using Microsoft.Extensions.Configuration;
 
 namespace FilesWatcher
 {
-    class Program
+    public class Program
     {
-        static void Main(string[] args)
+        private static void Main()
         {
+            var builder = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+
+            var config = builder.Build();
+
+
+            Console.WriteLine($"Folder path: { config["FolderPath"] } " + Environment.NewLine +
+                              $"Integration svn path: { config["IntegrationSvnPath"] } " + Environment.NewLine +
+                              $"Sound designer svn path: { config["SoundDesignerSvnPath"] } ");
         }
     }
 }
