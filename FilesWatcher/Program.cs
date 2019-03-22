@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.IO.Compression;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 
 namespace FilesWatcher
@@ -34,11 +35,11 @@ namespace FilesWatcher
 
                 // Watch for changes in LastAccess and LastWrite times, and
                 // the renaming of files or directories.
-                watcher.NotifyFilter = NotifyFilters.CreationTime   |
-                                       NotifyFilters.Size           |
-                                       NotifyFilters.LastAccess     |
-                                       NotifyFilters.LastWrite      |
-                                       NotifyFilters.FileName       |
+                watcher.NotifyFilter = NotifyFilters.CreationTime |
+                                       NotifyFilters.Size |
+                                       NotifyFilters.LastAccess |
+                                       NotifyFilters.LastWrite |
+                                       NotifyFilters.FileName |
                                        NotifyFilters.DirectoryName;
 
                 // Watch all files.
@@ -48,8 +49,8 @@ namespace FilesWatcher
 
                 // Add event handlers.
                 watcher.Changed += OnChanged;
-                watcher.Created += OnChanged;
-                watcher.Deleted += OnChanged;
+                //watcher.Created += OnChanged;
+                //watcher.Deleted += OnChanged;
                 watcher.Renamed += OnRenamed;
 
                 // Begin watching.
@@ -57,21 +58,52 @@ namespace FilesWatcher
 
                 // Wait for the user to quit the program.
                 Console.WriteLine("Press 'q' to quit the files watcher.");
-                while (Console.Read() != 'q');
+                while (Console.Read() != 'q')
+                {
+                }
             }
         }
 
         // Define the event handlers.
         private static void OnChanged(object source, FileSystemEventArgs e)
         {
-            if (File.Exists(Config["ZipPath"]))
-            {
-                File.Delete(Config["ZipPath"]);
-            }
-            ZipFile.CreateFromDirectory(Config["StartPath"], Config["ZipPath"]);
-
             // Specify what is done when a file is changed, created, or deleted.
             Console.WriteLine($"File: {e.FullPath} {e.ChangeType}");
+
+            try
+            {
+                ExtractToZip(e);
+            }
+            catch (Exception exception)
+            {
+                Console.Error.WriteLine(exception.Message);
+            }
+        }
+
+        private static void ExtractToZip(FileSystemEventArgs e)
+        {
+            string zipPath;
+            string folderPath;
+
+            var extension = Path.GetExtension(e.FullPath);
+            if (!string.IsNullOrEmpty(extension))
+            {
+                folderPath = Path.GetDirectoryName(e.FullPath);
+                var lastFolderName = Path.GetFileName(folderPath);
+                zipPath = Path.Combine(Config["ZipPath"], $"{lastFolderName}.zip");
+            }
+            else
+            {
+                zipPath = Path.Combine(Config["ZipPath"], $"{e.Name}.zip");
+                folderPath = e.FullPath;
+            }
+
+            if (File.Exists(zipPath))
+            {
+                File.Delete(zipPath);
+            }
+
+            ZipFile.CreateFromDirectory(folderPath, zipPath);
         }
 
         private static void OnRenamed(object source, RenamedEventArgs e)
