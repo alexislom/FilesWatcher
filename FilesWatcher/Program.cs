@@ -3,6 +3,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
+using NReco.VideoConverter;
 
 namespace FilesWatcher
 {
@@ -17,6 +18,8 @@ namespace FilesWatcher
                 .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
 
             Config = builder.Build();
+
+            Console.ForegroundColor = ConsoleColor.DarkGreen;
 
             Console.WriteLine("---------------Start monitoring folder---------------");
 
@@ -49,7 +52,7 @@ namespace FilesWatcher
 
                 // Add event handlers.
                 watcher.Changed += OnChanged;
-                //watcher.Created += OnChanged;
+                watcher.Created += OnChanged;
                 //watcher.Deleted += OnChanged;
                 watcher.Renamed += OnRenamed;
 
@@ -65,18 +68,29 @@ namespace FilesWatcher
         }
 
         // Define the event handlers.
-        private static void OnChanged(object source, FileSystemEventArgs e)
+        private static async void OnChanged(object source, FileSystemEventArgs e)
         {
             // Specify what is done when a file is changed, created, or deleted.
             Console.WriteLine($"File: {e.FullPath} {e.ChangeType}");
 
             try
             {
+                ConverAviFileToMp4(e);
                 ExtractToZip(e);
             }
             catch (Exception exception)
             {
                 Console.Error.WriteLine(exception.Message);
+            }
+        }
+
+        private static void ConverAviFileToMp4(FileSystemEventArgs e)
+        {
+            var extension = Path.GetExtension(e.FullPath);
+            if (!string.IsNullOrEmpty(extension) && extension == ".avi")
+            {
+                var ffMpeg = new FFMpegConverter();
+                ffMpeg.ConvertMedia(e.FullPath, Path.Combine(Config["ZipPath"], $"{Path.GetFileNameWithoutExtension(e.Name)}.mp4"), Format.mp4);
             }
         }
 
