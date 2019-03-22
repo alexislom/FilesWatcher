@@ -20,9 +20,7 @@ namespace FilesWatcher
             Config = builder.Build();
 
             Console.ForegroundColor = ConsoleColor.DarkGreen;
-
             Console.WriteLine("---------------Start monitoring folder---------------");
-
             Console.WriteLine($"Folder path: { Config["FolderPath"] } " + Environment.NewLine +
                               $"Integration svn path: { Config["IntegrationSvnPath"] } " + Environment.NewLine +
                               $"Sound designer svn path: { Config["SoundDesignerSvnPath"] } ");
@@ -67,16 +65,26 @@ namespace FilesWatcher
             }
         }
 
-        // Define the event handlers.
-        private static async void OnChanged(object source, FileSystemEventArgs e)
+        private static void OnChanged(object source, FileSystemEventArgs e)
         {
             // Specify what is done when a file is changed, created, or deleted.
             Console.WriteLine($"File: {e.FullPath} {e.ChangeType}");
-
             try
             {
-                ConverAviFileToMp4(e);
-                ExtractToZip(e);
+                var extension = Path.GetExtension(e.FullPath);
+                if (string.IsNullOrEmpty(extension))
+                    return;
+
+                if (extension == ".avi")
+                {
+                    ConverAviFileToMp4(e);
+                }
+                else
+                {
+                    MoveFileToSharedFolder(e);
+                }
+
+                //ExtractToZip(e);
             }
             catch (Exception exception)
             {
@@ -86,12 +94,25 @@ namespace FilesWatcher
 
         private static void ConverAviFileToMp4(FileSystemEventArgs e)
         {
-            var extension = Path.GetExtension(e.FullPath);
-            if (!string.IsNullOrEmpty(extension) && extension == ".avi")
+            var ffMpeg = new FFMpegConverter();
+            var mp4FilePath = Path.Combine(Config["SoundDesignerSvnPath"], $"{Path.GetFileNameWithoutExtension(e.Name)}.mp4");
+            if (File.Exists(mp4FilePath))
             {
-                var ffMpeg = new FFMpegConverter();
-                ffMpeg.ConvertMedia(e.FullPath, Path.Combine(Config["ZipPath"], $"{Path.GetFileNameWithoutExtension(e.Name)}.mp4"), Format.mp4);
+                File.Delete(mp4FilePath);
             }
+
+            Task.Run(() => ffMpeg.ConvertMedia(e.FullPath, Path.Combine(Config["SoundDesignerSvnPath"], $"{Path.GetFileNameWithoutExtension(e.Name)}.mp4"), Format.mp4));
+        }
+
+        private static void MoveFileToSharedFolder(FileSystemEventArgs e)
+        {
+            var fileName = Path.GetFileName(e.FullPath);
+            var pathToSharedFolder = Path.Combine(Config["SoundDesignerSvnPath"], $"{fileName}");
+
+            if (File.Exists(pathToSharedFolder))
+                return;
+
+            File.Copy(e.FullPath, pathToSharedFolder);
         }
 
         private static void ExtractToZip(FileSystemEventArgs e)
@@ -104,11 +125,11 @@ namespace FilesWatcher
             {
                 folderPath = Path.GetDirectoryName(e.FullPath);
                 var lastFolderName = Path.GetFileName(folderPath);
-                zipPath = Path.Combine(Config["ZipPath"], $"{lastFolderName}.zip");
+                zipPath = Path.Combine(Config["SoundDesignerSvnPath"], $"{lastFolderName}.zip");
             }
             else
             {
-                zipPath = Path.Combine(Config["ZipPath"], $"{e.Name}.zip");
+                zipPath = Path.Combine(Config["SoundDesignerSvnPath"], $"{e.Name}.zip");
                 folderPath = e.FullPath;
             }
 
