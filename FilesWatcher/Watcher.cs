@@ -81,6 +81,10 @@ namespace FilesWatcher
 
             // Now actually handle file event
             var e = (FileSystemEventArgs)args.CacheItem.Value;
+
+            if (e.FullPath.Contains("_postfix"))
+                return;
+
             if (e.ChangeType == WatcherChangeTypes.Renamed)
             {
                 if (e is RenamedEventArgs eventArgs)
@@ -121,7 +125,9 @@ namespace FilesWatcher
                 File.Delete(mp4FilePath);
             }
 
-            Task.Run(() => ffMpeg.ConvertMedia(e.FullPath, Path.Combine(Config["SoundDesignerSvnPath"], $"{Path.GetFileNameWithoutExtension(e.Name)}.mp4"), Format.mp4));
+            var outputPath = Path.Combine(Config["SoundDesignerSvnPath"], $"{Path.GetFileNameWithoutExtension(e.Name)}.mp4");
+
+            Task.Run(() => ffMpeg.ConvertMedia(e.FullPath, outputPath, Format.mp4));
         }
 
         private static void MoveFileToSharedFolder(FileSystemEventArgs e)
@@ -134,11 +140,5 @@ namespace FilesWatcher
 
             File.Copy(e.FullPath, pathToSharedFolder);
         }
-
-        //private static void OnRenamed(object source, RenamedEventArgs e)
-        //{
-        //    // Specify what is done when a file is renamed.
-        //    Console.WriteLine($"File: {e.OldFullPath} renamed to {e.FullPath}");
-        //}
     }
 }
