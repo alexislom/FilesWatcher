@@ -65,9 +65,11 @@ namespace FilesWatcher
             }
         }
 
+        // Add file event to cache for CacheTimeMilliseconds
         private static void OnChanged(object source, FileSystemEventArgs e)
         {
             _cacheItemPolicy.AbsoluteExpiration = DateTimeOffset.Now.Add(TimeSpan.FromMilliseconds(100));
+            // Only add if it is not there already (swallow others)
             _memCache.AddOrGetExisting(e.Name, e, _cacheItemPolicy);
         }
 
@@ -77,11 +79,18 @@ namespace FilesWatcher
             if (args.RemovedReason != CacheEntryRemovedReason.Expired)
                 return;
 
+            // Now actually handle file event
             var e = (FileSystemEventArgs)args.CacheItem.Value;
+            if (e.ChangeType == WatcherChangeTypes.Renamed)
+            {
+                if (e is RenamedEventArgs eventArgs)
+                    Console.WriteLine($"File: {eventArgs.OldFullPath} renamed to {eventArgs.FullPath}");
+            }
+            else
+            {
+                Console.WriteLine($"File: {e.FullPath} {e.ChangeType}");
+            }
 
-            //Console.WriteLine($"Let's now respond to the event {e.ChangeType} on {e.FullPath}");
-            // Specify what is done when a file is changed, created, or deleted.
-            Console.WriteLine($"File: {e.FullPath} {e.ChangeType}");
             try
             {
                 var extension = Path.GetExtension(e.FullPath);
@@ -126,10 +135,10 @@ namespace FilesWatcher
             File.Copy(e.FullPath, pathToSharedFolder);
         }
 
-        private static void OnRenamed(object source, RenamedEventArgs e)
-        {
-            // Specify what is done when a file is renamed.
-            Console.WriteLine($"File: {e.OldFullPath} renamed to {e.FullPath}");
-        }
+        //private static void OnRenamed(object source, RenamedEventArgs e)
+        //{
+        //    // Specify what is done when a file is renamed.
+        //    Console.WriteLine($"File: {e.OldFullPath} renamed to {e.FullPath}");
+        //}
     }
 }
