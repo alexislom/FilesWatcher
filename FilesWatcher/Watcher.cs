@@ -76,7 +76,7 @@ namespace FilesWatcher
         }
 
         // Handle cache item expiring 
-        private static void OnRemovedFromCache(CacheEntryRemovedArguments args)
+        private static async void OnRemovedFromCache(CacheEntryRemovedArguments args)
         {
             if (args.RemovedReason != CacheEntryRemovedReason.Expired)
                 return;
@@ -84,7 +84,7 @@ namespace FilesWatcher
             // Now actually handle file event
             var e = (FileSystemEventArgs)args.CacheItem.Value;
 
-            if (e.FullPath.Contains("_postfix"))
+            if (e.FullPath.ToLowerInvariant().Contains("_Collect".ToLowerInvariant()))
                 return;
 
             if (e.ChangeType == WatcherChangeTypes.Renamed)
@@ -105,7 +105,7 @@ namespace FilesWatcher
 
                 if (extension == ".avi")
                 {
-                    ConverAviFileToMp4(e);
+                    await ConverAviFileToMp4(e);
                 }
                 else
                 {
@@ -118,7 +118,7 @@ namespace FilesWatcher
             }
         }
 
-        private static void ConverAviFileToMp4(FileSystemEventArgs e)
+        private static async Task ConverAviFileToMp4(FileSystemEventArgs e)
         {
             var mp4FilePath = Path.Combine(Config["SoundDesignerSvnPath"], $"{Path.GetFileNameWithoutExtension(e.Name)}.mp4");
             if (File.Exists(mp4FilePath))
@@ -129,12 +129,15 @@ namespace FilesWatcher
             var outputPath = Path.Combine(Config["SoundDesignerSvnPath"], $"{Path.GetFileNameWithoutExtension(e.Name)}.mp4");
 
             var ffMpeg = new FFMpegConverter();
-            Task.Run(() => ffMpeg.ConvertMedia(e.FullPath, outputPath, Format.mp4));
-
-            //if (_svnClient.SvnAdd(outputPath))
-            //{
-            //    _svnClient.SvnCommit(outputPath);
-            //}
+            await Task.Run(() =>
+            {
+                ffMpeg.ConvertMedia(e.FullPath, outputPath, Format.mp4);
+                //TODO: check on temp svn repository and uncomment
+                //if (_svnClient.SvnAdd(outputPath))
+                //{
+                //    _svnClient.SvnCommit(outputPath);
+                //}
+            });
         }
 
         private static void MoveFileToSharedFolder(FileSystemEventArgs e)

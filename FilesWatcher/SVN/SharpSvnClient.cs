@@ -60,8 +60,7 @@ namespace FilesWatcher.SVN
                     Depth = SvnDepth.Infinity
                 };
 
-                SvnCommitResult svnCommitResult = null;
-                var result = svnClient.Commit(path, args, out svnCommitResult);
+                var result = svnClient.Commit(path, args, out var svnCommitResult);
                 if (result)
                 {
                     Console.WriteLine(svnCommitResult != null ? $"SharpSvn has committed {path}"
