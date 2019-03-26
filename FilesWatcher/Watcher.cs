@@ -112,7 +112,7 @@ namespace FilesWatcher
             }
             catch (Exception exception)
             {
-                Console.Error.WriteLine(exception.Message);
+                ShowError(exception.Message);
             }
         }
 
@@ -132,13 +132,41 @@ namespace FilesWatcher
 
         private static void MoveFileToSharedFolder(FileSystemEventArgs e)
         {
-            var fileName = Path.GetFileName(e.FullPath);
-            var pathToSharedFolder = Path.Combine(Config["IntegrationSvnPath"], $"{fileName}");
+            try
+            {
+                var fileName = Path.GetFileName(e.FullPath);
+                var directoryName = Path.GetFileName(Path.GetDirectoryName(e.FullPath));
 
-            if (File.Exists(pathToSharedFolder))
-                return;
+                var pathToSharedFolder = Path.Combine(Config["IntegrationSvnPath"], $"{directoryName}");
 
-            File.Copy(e.FullPath, pathToSharedFolder);
+                if (!Directory.Exists(pathToSharedFolder))
+                {
+                    // Try to create the directory.
+                    Directory.CreateDirectory(pathToSharedFolder);
+                }
+
+                var pathToSharedFile = Path.Combine(pathToSharedFolder, $"{fileName}");
+
+                if (File.Exists(pathToSharedFile))
+                    return;
+
+                File.Copy(e.FullPath, pathToSharedFile);
+            }
+            catch (Exception exception)
+            {
+                ShowError(exception.Message);
+            }
+        }
+
+        public static void ShowError(string message)
+        {
+            var originalColor = Console.ForegroundColor;
+            Console.ForegroundColor = ConsoleColor.Red;
+
+            //Console.WriteLine(message);
+            Console.Error.WriteLine(message);
+            // restore color
+            Console.ForegroundColor = originalColor;
         }
     }
 }
