@@ -1,5 +1,7 @@
 ﻿using System;
 using System.IO;
+using System.Net;
+using FilesWatcher.SVN;
 using Microsoft.Extensions.Configuration;
 
 namespace FilesWatcher
@@ -20,7 +22,11 @@ namespace FilesWatcher
                               $"Integration svn path: { config["IntegrationSvnPath"] } " + Environment.NewLine +
                               $"Sound designer svn path: { config["SoundDesignerSvnPath"] } ");
 
-            var watcher = new Watcher(config);
+
+            var svnCredential = new NetworkCredential(config["SoundDesignerRepositoryUsername"], config["SoundDesignerRepositoryPassword"]);
+            var svnClient = new SharpSvnClient(svnCredential);
+
+            var watcher = new Watcher(config, svnClient);
             watcher.RunWatcher();
         }
     }

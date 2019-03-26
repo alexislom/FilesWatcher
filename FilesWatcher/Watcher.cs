@@ -2,6 +2,7 @@
 using System.IO;
 using System.Runtime.Caching;
 using System.Threading.Tasks;
+using FilesWatcher.SVN;
 using Microsoft.Extensions.Configuration;
 using NReco.VideoConverter;
 
@@ -13,12 +14,13 @@ namespace FilesWatcher
     {
         private static MemoryCache _memCache;
         private static CacheItemPolicy _cacheItemPolicy;
-        //private const int CacheTimeMilliseconds = 1000;
+        private static ISvnClient _svnClient;
         private static IConfigurationRoot Config { get; set; }
 
-        public Watcher(IConfigurationRoot config)
+        public Watcher(IConfigurationRoot config, ISvnClient svnClient)
         {
             Config = config;
+            _svnClient = svnClient;
 
             _memCache = MemoryCache.Default;
 
@@ -118,7 +120,6 @@ namespace FilesWatcher
 
         private static void ConverAviFileToMp4(FileSystemEventArgs e)
         {
-            var ffMpeg = new FFMpegConverter();
             var mp4FilePath = Path.Combine(Config["SoundDesignerSvnPath"], $"{Path.GetFileNameWithoutExtension(e.Name)}.mp4");
             if (File.Exists(mp4FilePath))
             {
@@ -127,7 +128,13 @@ namespace FilesWatcher
 
             var outputPath = Path.Combine(Config["SoundDesignerSvnPath"], $"{Path.GetFileNameWithoutExtension(e.Name)}.mp4");
 
+            var ffMpeg = new FFMpegConverter();
             Task.Run(() => ffMpeg.ConvertMedia(e.FullPath, outputPath, Format.mp4));
+
+            //if (_svnClient.SvnAdd(outputPath))
+            //{
+            //    _svnClient.SvnCommit(outputPath);
+            //}
         }
 
         private static void MoveFileToSharedFolder(FileSystemEventArgs e)
