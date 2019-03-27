@@ -10,6 +10,8 @@ namespace FilesWatcher
     {
         private static void Main()
         {
+            Console.Title = "Files watcher";
+
             var builder = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
                 .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
@@ -21,7 +23,6 @@ namespace FilesWatcher
             Console.WriteLine($"Folder path: { config["FolderPath"] } " + Environment.NewLine +
                               $"Integration svn path: { config["IntegrationSvnPath"] } " + Environment.NewLine +
                               $"Sound designer svn path: { config["SoundDesignerSvnPath"] } ");
-
 
             var svnCredential = new NetworkCredential(config["SoundDesignerRepositoryUsername"], config["SoundDesignerRepositoryPassword"]);
             var svnClient = new SharpSvnClient(svnCredential);
