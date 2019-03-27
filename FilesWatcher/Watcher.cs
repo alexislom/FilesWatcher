@@ -120,23 +120,21 @@ namespace FilesWatcher
 
         private static async Task ConverAviFileToMp4(FileSystemEventArgs e)
         {
-            var mp4FilePath = Path.Combine(Config["SoundDesignerSvnPath"], $"{Path.GetFileNameWithoutExtension(e.Name)}.mp4");
-            if (File.Exists(mp4FilePath))
-            {
-                File.Delete(mp4FilePath);
-            }
-
             var outputPath = Path.Combine(Config["SoundDesignerSvnPath"], $"{Path.GetFileNameWithoutExtension(e.Name)}.mp4");
+            if (File.Exists(outputPath))
+            {
+                File.Delete(outputPath);
+            }
 
             var ffMpeg = new FFMpegConverter();
             await Task.Run(() =>
             {
                 ffMpeg.ConvertMedia(e.FullPath, outputPath, Format.mp4);
-                //TODO: check on temp svn repository and uncomment
-                //if (_svnClient.SvnAdd(outputPath))
-                //{
-                //    _svnClient.SvnCommit(outputPath);
-                //}
+
+                if (_svnClient.SvnAdd(outputPath))
+                {
+                    _svnClient.SvnCommit(outputPath);
+                }
             });
         }
 
