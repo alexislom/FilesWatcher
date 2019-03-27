@@ -140,30 +140,23 @@ namespace FilesWatcher
 
         private static void MoveFileToSharedFolder(FileSystemEventArgs e)
         {
-            try
+            var fileName = Path.GetFileName(e.FullPath);
+            var directoryName = Path.GetFileName(Path.GetDirectoryName(e.FullPath));
+
+            var pathToSharedFolder = Path.Combine(Config["IntegrationSvnPath"], $"{directoryName}");
+
+            if (!Directory.Exists(pathToSharedFolder))
             {
-                var fileName = Path.GetFileName(e.FullPath);
-                var directoryName = Path.GetFileName(Path.GetDirectoryName(e.FullPath));
-
-                var pathToSharedFolder = Path.Combine(Config["IntegrationSvnPath"], $"{directoryName}");
-
-                if (!Directory.Exists(pathToSharedFolder))
-                {
-                    // Try to create the directory.
-                    Directory.CreateDirectory(pathToSharedFolder);
-                }
-
-                var pathToSharedFile = Path.Combine(pathToSharedFolder, $"{fileName}");
-
-                if (File.Exists(pathToSharedFile))
-                    return;
-
-                File.Copy(e.FullPath, pathToSharedFile);
+                // Try to create the directory.
+                Directory.CreateDirectory(pathToSharedFolder);
             }
-            catch (Exception exception)
-            {
-                ShowError(exception.Message);
-            }
+
+            var pathToSharedFile = Path.Combine(pathToSharedFolder, $"{fileName}");
+
+            if (File.Exists(pathToSharedFile))
+                return;
+
+            File.Copy(e.FullPath, pathToSharedFile);
         }
 
         public static void ShowError(string message)
