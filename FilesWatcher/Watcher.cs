@@ -203,15 +203,27 @@ namespace FilesWatcher
                 Directory.CreateDirectory(targetPath);
             }
 
-            var files = Directory.GetFiles(e.FullPath);
+            var diSource = new DirectoryInfo(e.FullPath);
+            var diTarget = new DirectoryInfo(targetPath);
 
-            // Copy the files and overwrite destination files if they already exist.
-            foreach (var s in files)
+            RecursiveCopy(diSource, diTarget);
+        }
+
+        public static void RecursiveCopy(DirectoryInfo source, DirectoryInfo target)
+        {
+            Directory.CreateDirectory(target.FullName);
+
+            // Copy each file into the new directory.
+            foreach (var fileInfo in source.GetFiles())
             {
-                // Use static Path methods to extract only the file name from the path.
-                var fileName = Path.GetFileName(s);
-                var destFile = Path.Combine(targetPath, fileName);
-                File.Copy(s, destFile, true);
+                fileInfo.CopyTo(Path.Combine(target.FullName, fileInfo.Name), true);
+            }
+
+            // Copy each subdirectory using recursion.
+            foreach (var diSourceSubDir in source.GetDirectories())
+            {
+                var nextTargetSubDir = target.CreateSubdirectory(diSourceSubDir.Name);
+                RecursiveCopy(diSourceSubDir, nextTargetSubDir);
             }
         }
 
