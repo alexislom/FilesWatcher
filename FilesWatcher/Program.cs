@@ -27,8 +27,17 @@ namespace FilesWatcher
             var svnCredential = new NetworkCredential(config["SoundDesignerRepositoryUsername"], config["SoundDesignerRepositoryPassword"]);
             var svnClient = new SharpSvnClient(svnCredential);
 
-            var watcher = new Watcher(config, svnClient);
-            watcher.RunWatcher();
+            try
+            {
+                var watcher = new Watcher(config, svnClient);
+                watcher.RunWatcher();
+            }
+            catch (Exception exception)
+            {
+                Log.ShowException(exception.Message);
+            }
+
+            Console.ReadKey();
         }
     }
 }
