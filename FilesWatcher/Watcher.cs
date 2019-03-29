@@ -76,7 +76,7 @@ namespace FilesWatcher
         }
 
         // Handle cache item expiring 
-        private static async void OnRemovedFromCache(CacheEntryRemovedArguments args)
+        private static void OnRemovedFromCache(CacheEntryRemovedArguments args)
         {
             if (args.RemovedReason != CacheEntryRemovedReason.Expired)
                 return;
@@ -99,46 +99,78 @@ namespace FilesWatcher
 
             try
             {
-                var extension = Path.GetExtension(e.FullPath);
-                if (string.IsNullOrEmpty(extension))
-                    return;
-
-                if (extension == ".avi")
+                switch (e.ChangeType)
                 {
-                    await ConverAviFileToMp4(e);
-                }
-                else
-                {
-                    MoveFileToSharedFolder(e);
+                    case WatcherChangeTypes.Created:
+                        WorkOnCreateOrRenameEvent(e);
+                        break;
+                    case WatcherChangeTypes.Changed:
+                        WorkOnChangeEvent(e);
+                        break;
+                    case WatcherChangeTypes.Renamed:
+                        WorkOnCreateOrRenameEvent(e);
+                        break;
+                    //case WatcherChangeTypes.Deleted:
+                    //    WorkOnDeleteEvent(e);
+                    //    break;
                 }
             }
             catch (Exception exception)
             {
-                ShowError(exception.Message);
+                Log.ShowException(exception.Message);
             }
         }
 
-        private static async Task ConverAviFileToMp4(FileSystemEventArgs e)
+        #region Event handlers
+
+        private static void WorkOnCreateOrRenameEvent(FileSystemEventArgs e)
         {
-            var outputPath = Path.Combine(Config["SoundDesignerSvnPath"], $"{Path.GetFileNameWithoutExtension(e.Name)}.mp4");
-            if (File.Exists(outputPath))
+            if (File.Exists(e.FullPath))
             {
-                File.Delete(outputPath);
-            }
-
-            var ffMpeg = new FFMpegConverter();
-            await Task.Run(() =>
-            {
-                ffMpeg.ConvertMedia(e.FullPath, outputPath, Format.mp4);
-
-                if (_svnClient.SvnAdd(outputPath))
+                var extension = Path.GetExtension(e.FullPath);
+                if (!string.IsNullOrEmpty(extension))
                 {
-                    _svnClient.SvnCommit(outputPath);
+                    if (extension == ".avi")
+                    {
+                        ConverAviFileToMp4(e);
+                    }
+                    else
+                    {
+                        CopyOfFile(e);
+                    }
                 }
-            });
+            }
+            else if (Directory.Exists(e.FullPath))
+            {
+                RecursiveCopyOfDirectory(e);
+            }
         }
 
-        private static void MoveFileToSharedFolder(FileSystemEventArgs e)
+        private static void WorkOnChangeEvent(FileSystemEventArgs e)
+        {
+            if (File.Exists(e.FullPath))
+            {
+                var extension = Path.GetExtension(e.FullPath);
+                if (!string.IsNullOrEmpty(extension) && extension != ".avi")
+                {
+                    CopyOfFile(e);
+                }
+            }
+        }
+
+        //private static void WorkOnRenameEvent(FileSystemEventArgs fileSystemEventArgs)
+        //{
+        //}
+
+        //private static void WorkOnDeleteEvent(FileSystemEventArgs fileSystemEventArgs)
+        //{
+        //}
+
+        #endregion Event handlers
+
+        #region Private methods
+
+        private static void CopyOfFile(FileSystemEventArgs e)
         {
             var fileName = Path.GetFileName(e.FullPath);
             var directoryName = Path.GetFileName(Path.GetDirectoryName(e.FullPath));
@@ -159,15 +191,91 @@ namespace FilesWatcher
             File.Copy(e.FullPath, pathToSharedFile);
         }
 
-        public static void ShowError(string message)
+        private static void RecursiveCopyOfDirectory(FileSystemEventArgs e)
         {
-            var originalColor = Console.ForegroundColor;
-            Console.ForegroundColor = ConsoleColor.Red;
+            var directoryName = Path.GetFileName(e.FullPath);
 
-            //Console.WriteLine(message);
-            Console.Error.WriteLine(message);
-            // restore color
-            Console.ForegroundColor = originalColor;
+            var targetPath = Path.Combine(Config["IntegrationSvnPath"], $"{directoryName}");
+
+            if (!Directory.Exists(targetPath))
+            {
+                // Try to create the directory.
+                Directory.CreateDirectory(targetPath);
+            }
+
+            var files = Directory.GetFiles(e.FullPath);
+
+            // Copy the files and overwrite destination files if they already exist.
+            foreach (var s in files)
+            {
+                // Use static Path methods to extract only the file name from the path.
+                var fileName = Path.GetFileName(s);
+                var destFile = Path.Combine(targetPath, fileName);
+                File.Copy(s, destFile, true);
+            }
+        }
+
+        private static void ConverAviFileToMp4(FileSystemEventArgs e)
+        {
+            var outputPath = Path.Combine(Config["SoundDesignerSvnPath"], $"{Path.GetFileNameWithoutExtension(e.Name)}.mp4");
+            if (File.Exists(outputPath))
+            {
+                File.Delete(outputPath);
+            }
+
+            var ffMpeg = new FFMpegConverter();
+            Task.Run(() =>
+            {
+                ffMpeg.ConvertMedia(e.FullPath, outputPath, Format.mp4);
+
+                if (_svnClient.SvnAdd(outputPath))
+                {
+                    _svnClient.SvnCommit(outputPath);
+                }
+            });
+        }
+
+        #endregion Private methods
+
+        private static void RecursiveCopyFilesToSharedFolder(FileSystemEventArgs e)
+        {
+            //var fileName = Path.GetFileName(e.FullPath);
+            var directoryName = Path.GetFileName(Path.GetDirectoryName(e.FullPath));
+
+            //var pathToSharedFolder = Path.Combine(Config["IntegrationSvnPath"], $"{directoryName}");
+            var targetPath = Path.Combine(Config["IntegrationSvnPath"], $"{directoryName}");
+
+            //if (!Directory.Exists(pathToSharedFolder))
+            //{
+            //    // Try to create the directory.
+            //    Directory.CreateDirectory(pathToSharedFolder);
+            //}
+            if (!Directory.Exists(targetPath))
+            {
+                // Try to create the directory.
+                Directory.CreateDirectory(targetPath);
+            }
+
+            //var pathToSharedFile = Path.Combine(pathToSharedFolder, $"{fileName}");
+
+            //if (File.Exists(pathToSharedFile))
+            //    return;
+
+            //File.Copy(e.FullPath, pathToSharedFile);
+
+            if (!Directory.Exists(e.FullPath))
+                return;
+
+            var files = Directory.GetFiles(e.FullPath);
+
+            // Copy the files and overwrite destination files if they already exist.
+            foreach (var s in files)
+            {
+                // Use static Path methods to extract only the file name from the path.
+                var fileName = Path.GetFileName(s);
+                var destFile = Path.Combine(targetPath, fileName);
+                File.Copy(s, destFile, true);
+            }
         }
     }
 }

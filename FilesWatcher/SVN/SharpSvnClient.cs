@@ -31,7 +31,7 @@ namespace FilesWatcher.SVN
                 var args = new SvnCheckOutArgs { Depth = SvnDepth.Infinity, IgnoreExternals = true };
                 var result = svnClient.CheckOut(url, path, args);
                 if (result)
-                    Console.WriteLine($"SharpSvn has checked out {path}");
+                    Log.ShowLog($"SharpSvn has checked out {path}");
 
                 return result;
             });
@@ -44,7 +44,7 @@ namespace FilesWatcher.SVN
                 var args = new SvnAddArgs { Depth = SvnDepth.Infinity, AddParents = true };
                 var result = svnClient.Add(path, args);
                 if (result)
-                    Console.WriteLine($"SharpSvn has added {path}");
+                    Log.ShowLog($"SharpSvn has added {path}");
 
                 return result;
             });
@@ -63,8 +63,8 @@ namespace FilesWatcher.SVN
                 var result = svnClient.Commit(path, args, out var svnCommitResult);
                 if (result)
                 {
-                    Console.WriteLine(svnCommitResult != null ? $"SharpSvn has committed {path}"
-                                                              : $"SharpSvn tried to commit {path}, but no modification was detected");
+                    Log.ShowLog(svnCommitResult != null ? $"SharpSvn has committed {path}"
+                                                        : $"SharpSvn tried to commit {path}, but no modification was detected");
                 }
 
                 return result;
@@ -83,7 +83,7 @@ namespace FilesWatcher.SVN
                 };
                 var result = svnClient.Delete(path, args);
                 if (result)
-                    Console.WriteLine($"SharpSvn has deleted {path}");
+                    Log.ShowLog($"SharpSvn has deleted {path}");
 
                 return result;
             });
@@ -99,7 +99,7 @@ namespace FilesWatcher.SVN
                 }
                 catch (SvnException se)
                 {
-                    Console.WriteLine($"Error: {se.SvnErrorCode}, SharpSvn error on: {path}, {se.RootCause.Message}. {se}.");
+                    Log.ShowSvnException(path, se);
                 }
             }
             return false;

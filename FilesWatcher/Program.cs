@@ -19,10 +19,10 @@ namespace FilesWatcher
             var config = builder.Build();
 
             Console.ForegroundColor = ConsoleColor.DarkGreen;
-            Console.WriteLine("---------------Start monitoring folder---------------");
-            Console.WriteLine($"Folder path: { config["FolderPath"] } " + Environment.NewLine +
-                              $"Integration svn path: { config["IntegrationSvnPath"] } " + Environment.NewLine +
-                              $"Sound designer svn path: { config["SoundDesignerSvnPath"] } ");
+            Log.ShowLog("---------------Start monitoring folder---------------");
+            Log.ShowLog($"Folder path: { config["FolderPath"] } " + Environment.NewLine +
+                        $"Integration svn path: { config["IntegrationSvnPath"] } " + Environment.NewLine +
+                        $"Sound designer svn path: { config["SoundDesignerSvnPath"] } ");
 
             var svnCredential = new NetworkCredential(config["SoundDesignerRepositoryUsername"], config["SoundDesignerRepositoryPassword"]);
             var svnClient = new SharpSvnClient(svnCredential);
