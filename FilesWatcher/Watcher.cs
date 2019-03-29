@@ -90,11 +90,11 @@ namespace FilesWatcher
             if (e.ChangeType == WatcherChangeTypes.Renamed)
             {
                 if (e is RenamedEventArgs eventArgs)
-                    Console.WriteLine($"File: {eventArgs.OldFullPath} renamed to {eventArgs.FullPath}");
+                    Log.ShowLog($"File: {eventArgs.OldFullPath} renamed to {eventArgs.FullPath}");
             }
             else
             {
-                Console.WriteLine($"File: {e.FullPath} {e.ChangeType}");
+                Log.ShowLog($"File: {e.FullPath} {e.ChangeType}");
             }
 
             try
@@ -157,14 +157,6 @@ namespace FilesWatcher
                 }
             }
         }
-
-        //private static void WorkOnRenameEvent(FileSystemEventArgs fileSystemEventArgs)
-        //{
-        //}
-
-        //private static void WorkOnDeleteEvent(FileSystemEventArgs fileSystemEventArgs)
-        //{
-        //}
 
         #endregion Event handlers
 
@@ -248,46 +240,5 @@ namespace FilesWatcher
         }
 
         #endregion Private methods
-
-        private static void RecursiveCopyFilesToSharedFolder(FileSystemEventArgs e)
-        {
-            //var fileName = Path.GetFileName(e.FullPath);
-            var directoryName = Path.GetFileName(Path.GetDirectoryName(e.FullPath));
-
-            //var pathToSharedFolder = Path.Combine(Config["IntegrationSvnPath"], $"{directoryName}");
-            var targetPath = Path.Combine(Config["IntegrationSvnPath"], $"{directoryName}");
-
-            //if (!Directory.Exists(pathToSharedFolder))
-            //{
-            //    // Try to create the directory.
-            //    Directory.CreateDirectory(pathToSharedFolder);
-            //}
-            if (!Directory.Exists(targetPath))
-            {
-                // Try to create the directory.
-                Directory.CreateDirectory(targetPath);
-            }
-
-            //var pathToSharedFile = Path.Combine(pathToSharedFolder, $"{fileName}");
-
-            //if (File.Exists(pathToSharedFile))
-            //    return;
-
-            //File.Copy(e.FullPath, pathToSharedFile);
-
-            if (!Directory.Exists(e.FullPath))
-                return;
-
-            var files = Directory.GetFiles(e.FullPath);
-
-            // Copy the files and overwrite destination files if they already exist.
-            foreach (var s in files)
-            {
-                // Use static Path methods to extract only the file name from the path.
-                var fileName = Path.GetFileName(s);
-                var destFile = Path.Combine(targetPath, fileName);
-                File.Copy(s, destFile, true);
-            }
-        }
     }
 }
